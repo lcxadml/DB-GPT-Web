@@ -2,11 +2,11 @@ import { Card, CardContent, Typography } from '@mui/joy';
 import BarChart from './bar-chart';
 import LineChart from './line-chart';
 import TableChart from './table-chart';
-import { ChartData } from '@/types/chart';
+import { ChartData } from '@/types/chat';
 import { useMemo } from 'react';
 
 type Props = {
-  chartsData: Array<ChartData> | undefined;
+  chartsData: Array<ChartData>;
 };
 
 function Chart({ chartsData }: Props) {
@@ -41,45 +41,40 @@ function Chart({ chartsData }: Props) {
   }, [chartsData]);
 
   return (
-    <>
-      {chartsData && (
-        <div className="w-full">
-          <div className="flex flex-col gap-3 h-full">
-            {chartRows?.map((chartRow, index) => (
-              <div key={`chart_row_${index}`} className={`${chartRow?.type !== 'IndicatorValue' ? 'flex gap-3' : ''}`}>
-                {chartRow.charts.map((chart) => {
-                  if (chart.chart_type === 'IndicatorValue') {
-                    return (
-                      <div key={chart.chart_uid} className="flex flex-row gap-3">
-                        {chart.values.map((item) => (
-                          <div key={item.name} className="flex-1">
-                            <Card sx={{ background: 'transparent' }}>
-                              <CardContent className="justify-around">
-                                <Typography gutterBottom component="div">
-                                  {item.name}
-                                </Typography>
-                                <Typography>{item.value}</Typography>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  } else if (chart.chart_type === 'LineChart') {
-                    return <LineChart key={chart.chart_uid} chart={chart} />;
-                  } else if (chart.chart_type === 'BarChart') {
-                    return <BarChart key={chart.chart_uid} chart={chart} />;
-                  } else if (chart.chart_type === 'Table') {
-                    return <TableChart key={chart.chart_uid} chart={chart} />;
-                  }
-                })}
-              </div>
-            ))}
-          </div>
+    <div className="flex flex-col gap-3">
+      {chartRows?.map((chartRow, index) => (
+        <div key={`chart_row_${index}`} className={`${chartRow?.type !== 'IndicatorValue' ? 'flex gap-3' : ''}`}>
+          {chartRow.charts.map((chart) => {
+            if (chart.chart_type === 'IndicatorValue') {
+              return (
+                <div key={chart.chart_uid} className="flex flex-row gap-3">
+                  {chart.values.map((item) => (
+                    <div key={item.name} className="flex-1">
+                      <Card sx={{ background: 'transparent' }}>
+                        <CardContent className="justify-around">
+                          <Typography gutterBottom component="div">
+                            {item.name}
+                          </Typography>
+                          <Typography>{item.value}</Typography>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              );
+            } else if (chart.chart_type === 'LineChart') {
+              return <LineChart key={chart.chart_uid} chart={chart} />;
+            } else if (chart.chart_type === 'BarChart') {
+              return <BarChart key={chart.chart_uid} chart={chart} />;
+            } else if (chart.chart_type === 'Table') {
+              return <TableChart key={chart.chart_uid} chart={chart} />;
+            }
+          })}
         </div>
-      )}
-    </>
+      ))}
+    </div>
   );
 }
 
+export * from './autoChart';
 export default Chart;

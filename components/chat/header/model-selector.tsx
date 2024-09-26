@@ -3,78 +3,58 @@
  */
 
 import { ChatContext } from '@/app/chat-context';
-import { Select, Option, SelectOption } from '@/lib/mui';
-import { ICON_MAP } from '@/utils/constants';
-import classNames from 'classnames';
+import { Select } from 'antd';
+import { MODEL_ICON_MAP } from '@/utils/constants';
 import Image from 'next/image';
 import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
-  size: 'sm' | 'md' | 'lg';
   onChange?: (model: string) => void;
 }
 
 const DEFAULT_ICON_URL = '/models/huggingface.svg';
 
-export function renderModelIcon(model?: string | undefined, props?: { width: number; height: number }) {
-  if (!model) {
-    return null;
-  }
+export function renderModelIcon(model?: string, props?: { width: number; height: number }) {
   const { width, height } = props || {};
+
+  if (!model) return null;
+
   return (
     <Image
-      className="rounded-full mr-2 border border-gray-200 object-contain bg-white inline-block"
+      className="rounded-full border border-gray-200 object-contain bg-white inline-block"
       width={width || 24}
       height={height || 24}
-      src={ICON_MAP[model]?.icon || DEFAULT_ICON_URL}
+      src={MODEL_ICON_MAP[model]?.icon || DEFAULT_ICON_URL}
       alt="llm"
     />
   );
 }
 
-function ModelSelector({ size, onChange }: Props) {
+function ModelSelector({ onChange }: Props) {
   const { t } = useTranslation();
-  const { modelList, model, scene } = useContext(ChatContext);
+  const { modelList, model } = useContext(ChatContext);
   if (!modelList || modelList.length <= 0) {
     return null;
   }
-
-  function renderValue(option: SelectOption<string> | null) {
-    if (!option) {
-      return null;
-    }
-    return (
-      <>
-        {renderModelIcon(option.value)}
-        {option.label}
-      </>
-    );
-  }
   return (
-    <div
-      className={classNames({
-        'w-48': size === 'sm' || size === 'md' || !size,
-        'w-60': size === 'lg',
-      })}
+    <Select
+      value={model}
+      placeholder={t('choose_model')}
+      className="w-52"
+      onChange={(val) => {
+        onChange?.(val);
+      }}
     >
-      <Select
-        size={size || 'sm'}
-        placeholder={t('choose_model')}
-        value={model || ''}
-        renderValue={renderValue}
-        onChange={(_, newValue) => {
-          newValue && onChange?.(newValue);
-        }}
-      >
-        {modelList.map((model: string) => (
-          <Option key={`model_${model}`} value={model}>
-            {renderModelIcon(model)}
-            {ICON_MAP[model]?.label || model}
-          </Option>
-        ))}
-      </Select>
-    </div>
+      {modelList.map((item) => (
+        <Select.Option key={item}>
+          <div className="flex items-center">
+            {renderModelIcon(item)}
+            <span className="ml-2">{MODEL_ICON_MAP[item]?.label || item}</span>
+          </div>
+        </Select.Option>
+      ))}
+    </Select>
   );
 }
 

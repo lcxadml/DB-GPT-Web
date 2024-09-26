@@ -21,9 +21,9 @@ function Models() {
   }, []);
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-6 overflow-y-auto">
       <Button
-        className="mb-8"
+        className="mb-4"
         type="primary"
         onClick={() => {
           setIsModalOpen(true);
@@ -31,9 +31,11 @@ function Models() {
       >
         {t('create_model')}
       </Button>
-      {models.map((item) => (
-        <ModelCard info={item} key={item.model_name} />
-      ))}
+      <div className="flex flex-wrap gap-2 md:gap-4">
+        {models.map((item) => (
+          <ModelCard info={item} key={item.model_name} />
+        ))}
+      </div>
       <Modal
         width={800}
         open={isModalOpen}

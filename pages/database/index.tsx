@@ -1,44 +1,24 @@
-'use client';
-
 import React, { useMemo, useState } from 'react';
 import { useAsyncEffect } from 'ahooks';
-import { Badge, Button, Card, Drawer, Empty, Modal, Spin, message } from 'antd';
+import { Badge, Button, Card, Drawer, Empty, Modal, message } from 'antd';
 import FormDialog from '@/components/database/form-dialog';
 import { apiInterceptors, getDbList, getDbSupportType, postDbDelete } from '@/client/api';
-import DBCard from '@/components/database/db-card';
 import { DeleteFilled, EditFilled, PlusOutlined } from '@ant-design/icons';
 import { DBOption, DBType, DbListResponse, DbSupportTypeResponse } from '@/types/db';
 import MuiLoading from '@/components/common/loading';
+import { dbMapper } from '@/utils';
+import GPTCard from '@/components/common/gpt-card';
+import { useTranslation } from 'react-i18next';
 
 type DBItem = DbListResponse[0];
-
-const dbMapper: Record<DBType, { label: string; icon: string; desc: string }> = {
-  mysql: { label: 'MySQL', icon: '/icons/mysql.png', desc: 'Fast, reliable, scalable open-source relational database management system.' },
-  mssql: { label: 'MSSQL', icon: '/icons/mssql.png', desc: 'Powerful, scalable, secure relational database system by Microsoft.' },
-  duckdb: { label: 'DuckDB', icon: '/icons/duckdb.png', desc: 'In-memory analytical database with efficient query processing.' },
-  sqlite: { label: 'Sqlite', icon: '/icons/sqlite.png', desc: 'Lightweight embedded relational database with simplicity and portability.' },
-  clickhouse: { label: 'ClickHouse', icon: '/icons/clickhouse.png', desc: 'Columnar database for high-performance analytics and real-time queries.' },
-  oracle: { label: 'Oracle', icon: '/icons/oracle.png', desc: 'Robust, scalable, secure relational database widely used in enterprises.' },
-  access: { label: 'Access', icon: '/icons/access.png', desc: 'Easy-to-use relational database for small-scale applications by Microsoft.' },
-  mongodb: { label: 'MongoDB', icon: '/icons/mongodb.png', desc: 'Flexible, scalable NoSQL document database for web and mobile apps.' },
-  db2: { label: 'DB2', icon: '/icons/db2.png', desc: 'Scalable, secure relational database system developed by IBM.' },
-  hbase: { label: 'HBase', icon: '/icons/hbase.png', desc: 'Distributed, scalable NoSQL database for large structured/semi-structured data.' },
-  redis: { label: 'Redis', icon: '/icons/redis.png', desc: 'Fast, versatile in-memory data structure store as cache, DB, or broker.' },
-  cassandra: { label: 'Cassandra', icon: '/icons/cassandra.png', desc: 'Scalable, fault-tolerant distributed NoSQL database for large data.' },
-  couchbase: { label: 'Couchbase', icon: '/icons/couchbase.png', desc: 'High-performance NoSQL document database with distributed architecture.' },
-  postgresql: {
-    label: 'PostgreSQL',
-    icon: '/icons/postgresql.png',
-    desc: 'Powerful open-source relational database with extensibility and SQL standards.',
-  },
-  spark: { label: 'Spark', icon: '/icons/spark.png', desc: 'Unified engine for large-scale data analytics.' },
-};
 
 export function isFileDb(dbTypeList: DBOption[], dbType: DBType) {
   return dbTypeList.find((item) => item.value === dbType)?.isFileDb;
 }
 
 function Database() {
+  const { t } = useTranslation();
+
   const [dbList, setDbList] = useState<DbListResponse>([]);
   const [dbSupportList, setDbSupportList] = useState<DbSupportTypeResponse>([]);
   const [loading, setLoading] = useState(false);
@@ -46,13 +26,13 @@ function Database() {
   const [draw, setDraw] = useState<{ open: boolean; dbList?: DbListResponse; name?: string; type?: DBType }>({ open: false });
 
   const getDbSupportList = async () => {
-    const [_, data] = await apiInterceptors(getDbSupportType());
+    const [, data] = await apiInterceptors(getDbSupportType());
     setDbSupportList(data ?? []);
   };
 
   const refreshDbList = async () => {
     setLoading(true);
-    const [_, data] = await apiInterceptors(getDbList());
+    const [, data] = await apiInterceptors(getDbList());
     setDbList(data ?? []);
     setLoading(false);
   };
@@ -60,6 +40,7 @@ function Database() {
   const dbTypeList = useMemo(() => {
     const supportDbList = dbSupportList.map((item) => {
       const { db_type, is_file_db } = item;
+
       return { ...dbMapper[db_type], value: db_type, isFileDb: is_file_db };
     }) as DBOption[];
     const unSupportDbList = Object.keys(dbMapper)
@@ -89,7 +70,6 @@ function Database() {
             refreshDbList();
             resolve();
           } catch (e: any) {
-            message.error(e.message);
             reject();
           }
         });
@@ -116,9 +96,9 @@ function Database() {
   };
 
   return (
-    <div className="relative p-6 px-12 bg-[#FAFAFA] dark:bg-transparent min-h-full overflow-y-auto">
+    <div className="relative p-4 md:p-6 min-h-full overflow-y-auto">
       <MuiLoading visible={loading} />
-      <div className="px-1 mb-4">
+      <div className="mb-4">
         <Button
           type="primary"
           className="flex items-center"
@@ -127,15 +107,20 @@ function Database() {
             setModal({ open: true });
           }}
         >
-          Create
+          {t('create')}
         </Button>
       </div>
-      <div className="flex flex-wrap">
+      <div className="flex flex-wrap gap-2 md:gap-4">
         {dbTypeList.map((item) => (
-          <Badge className="mr-4 mb-4" key={item.value} count={dbListByType[item.value].length}>
-            <DBCard
-              info={item}
+          <Badge key={item.value} count={dbListByType[item.value].length} className="min-h-fit">
+            <GPTCard
+              className="h-full"
+              title={item.label}
+              desc={item.desc ?? ''}
+              disabled={item.disabled}
+              icon={item.icon}
               onClick={() => {
+                if (item.disabled) return;
                 handleDbTypeClick(item);
               }}
             />

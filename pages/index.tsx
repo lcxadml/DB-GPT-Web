@@ -1,153 +1,129 @@
-'use client';
 import { useRequest } from 'ahooks';
 import { useContext, useState } from 'react';
-import { Button, Input, Box, buttonClasses, Divider } from '@/lib/mui';
-import IconButton from '@mui/joy/IconButton';
-import SendRoundedIcon from '@mui/icons-material/SendRounded';
-import { useForm } from 'react-hook-form';
+import { Divider, Spin, Tag } from 'antd';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { NextPage } from 'next';
 import { apiInterceptors, newDialogue, postScenes } from '@/client/api';
 import ModelSelector from '@/components/chat/header/model-selector';
 import { ChatContext } from '@/app/chat-context';
-
-type FormData = {
-  query: string;
-};
+import { SceneResponse } from '@/types/chat';
+import CompletionInput from '@/components/common/completion-input';
+import { useTranslation } from 'react-i18next';
+import { STORAGE_INIT_MESSAGE_KET } from '@/utils';
+import Icon from '@ant-design/icons/lib/components/Icon';
+import { ColorfulDB, ColorfulPlugin, ColorfulDashboard, ColorfulData, ColorfulExcel, ColorfulDoc, ColorfulChat } from '@/components/icons';
+import classNames from 'classnames';
 
 const Home: NextPage = () => {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { model, setModel } = useContext(ChatContext);
-  const methods = useForm<FormData>();
-  const { data: scenesList } = useRequest(async () => {
+  const { t } = useTranslation();
+
+  const [loading, setLoading] = useState(false);
+  const [chatSceneLoading, setChatSceneLoading] = useState<boolean>(false);
+
+  const { data: scenesList = [] } = useRequest(async () => {
+    setChatSceneLoading(true);
     const [, res] = await apiInterceptors(postScenes());
+    setChatSceneLoading(false);
     return res ?? [];
   });
 
-  const submit = async ({ query }: FormData) => {
-    try {
-      setIsLoading(true);
-      methods.reset();
-      const [, res] = await apiInterceptors(
-        newDialogue({
-          chat_mode: 'chat_normal',
-        }),
-      );
-      if (res?.conv_uid) {
-        router.push(`/chat?id=${res?.conv_uid}${model ? `&model=${model}` : ''}&initMessage=${query}`);
-      }
-    } catch (err) {
-    } finally {
-      setIsLoading(false);
+  const submit = async (message: string) => {
+    setLoading(true);
+    const [, res] = await apiInterceptors(newDialogue({ chat_mode: 'chat_normal' }));
+    if (res) {
+      localStorage.setItem(STORAGE_INIT_MESSAGE_KET, JSON.stringify({ id: res.conv_uid, message }));
+      router.push(`/chat/?scene=chat_normal&id=${res.conv_uid}${model ? `&model=${model}` : ''}`);
+    }
+    setLoading(false);
+  };
+
+  const handleNewChat = async (scene: SceneResponse) => {
+    if (scene.show_disable) return;
+    const [, res] = await apiInterceptors(newDialogue({ chat_mode: 'chat_normal' }));
+    if (res) {
+      router.push(`/chat?scene=${scene.chat_scene}&id=${res.conv_uid}${model ? `&model=${model}` : ''}`);
     }
   };
 
+  function renderSceneIcon(scene: string) {
+    switch (scene) {
+      case 'chat_knowledge':
+        return <Icon className="w-10 h-10 mr-4 p-1" component={ColorfulDoc} />;
+      case 'chat_with_db_execute':
+        return <Icon className="w-10 h-10 mr-4 p-1" component={ColorfulData} />;
+      case 'chat_excel':
+        return <Icon className="w-10 h-10 mr-4 p-1" component={ColorfulExcel} />;
+      case 'chat_with_db_qa':
+        return <Icon className="w-10 h-10 mr-4 p-1" component={ColorfulDB} />;
+      case 'chat_dashboard':
+        return <Icon className="w-10 h-10 mr-4 p-1" component={ColorfulDashboard} />;
+      case 'chat_agent':
+        return <Icon className="w-10 h-10 mr-4 p-1" component={ColorfulPlugin} />;
+      case 'dbgpt_chat':
+        return <Icon className="w-10 h-10 mr-4 p-1" component={ColorfulChat} />;
+      default:
+        return null;
+    }
+  }
+
   return (
-    <>
-      <div className="mx-auto h-full justify-center flex max-w-3xl flex-col gap-8 px-5 pt-6">
-        <Box className="flex justify-center py-4">
+    <div className="px-4 h-screen flex flex-col justify-center items-center overflow-hidden">
+      <div className="max-w-3xl max-h-screen overflow-y-auto">
+        <Image
+          src="/LOGO.png"
+          alt="Revolutionizing Database Interactions with Private LLM Technology"
+          width={856}
+          height={160}
+          className="w-full mt-4"
+          unoptimized
+        />
+        <Divider className="!text-[#878c93] !my-6" plain>
+          {t('Quick_Start')}
+        </Divider>
+        <Spin spinning={chatSceneLoading}>
+          <div className="flex flex-wrap -m-1 md:-m-2">
+            {scenesList.map((scene) => (
+              <div
+                key={scene.chat_scene}
+                className="w-full sm:w-1/2 p-1 md:p-2"
+                onClick={() => {
+                  handleNewChat(scene);
+                }}
+              >
+                <div
+                  className={classNames(
+                    'flex flex-row justify-center h-[102px] min-h-min bg-white dark:bg-[#232734] dark:text-white rounded p-4 cursor-pointer hover:-translate-y-1 transition-[transform_shadow] duration-300 hover:shadow-[0_14px_20px_-10px_rgba(100,100,100,.1)]',
+                    { 'grayscale !cursor-no-drop': scene.show_disable },
+                  )}
+                >
+                  {renderSceneIcon(scene.chat_scene)}
+                  <div className="flex flex-col flex-1">
+                    <h2 className="flex items-center text-lg font-sans font-semibold">
+                      {scene.scene_name}
+                      {scene.show_disable && <Tag className="ml-2">Comming soon</Tag>}
+                    </h2>
+                    <p className="opacity-80 line-clamp-2">{scene.scene_describe}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Spin>
+        <div className="mt-8 mb-2">
           <ModelSelector
-            size="lg"
             onChange={(newModel: string) => {
               setModel(newModel);
             }}
           />
-        </Box>
-        <div className="my-0 mx-auto">
-          <Image
-            src="/LOGO.png"
-            alt="Revolutionizing Database Interactions with Private LLM Technology"
-            width={856}
-            height={160}
-            className="w-full"
-            unoptimized
-          />
         </div>
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-3">
-            <Divider className="text-[#878c93]">Quick Start</Divider>
-            <Box
-              className="grid rounded-xl gap-2 lg:grid-cols-3 lg:gap-6"
-              sx={{
-                [`& .${buttonClasses.root}`]: {
-                  color: 'var(--joy-palette-primary-solidColor)',
-                  backgroundColor: 'var(--joy-palette-primary-solidBg)',
-                  height: '52px',
-                  '&: hover': {
-                    backgroundColor: 'var(--joy-palette-primary-solidHoverBg)',
-                  },
-                },
-                [`& .${buttonClasses.disabled}`]: {
-                  cursor: 'not-allowed',
-                  pointerEvents: 'unset',
-                  color: 'var(--joy-palette-primary-plainColor)',
-                  backgroundColor: 'var(--joy-palette-primary-softDisabledBg)',
-                  '&: hover': {
-                    backgroundColor: 'var(--joy-palette-primary-softDisabledBg)',
-                  },
-                },
-              }}
-            >
-              {scenesList?.map((scene) => (
-                <Button
-                  key={scene['chat_scene']}
-                  disabled={scene?.show_disable}
-                  size="md"
-                  variant="solid"
-                  className="text-base rounded-none"
-                  onClick={async () => {
-                    const [, res] = await apiInterceptors(
-                      newDialogue({
-                        chat_mode: 'chat_normal',
-                      }),
-                    );
-                    if (res?.conv_uid) {
-                      router.push(`/chat?id=${res.conv_uid}${model ? `&model=${model}` : ''}&scene=${scene['chat_scene']}`);
-                    }
-                  }}
-                >
-                  {scene['scene_name']}
-                </Button>
-              ))}
-            </Box>
-          </div>
-        </div>
-        <div className="mt-6 mb-[10%] pointer-events-none inset-x-0 bottom-0 z-0 mx-auto flex w-full max-w-3xl flex-col items-center justify-center max-md:border-t xl:max-w-4xl [&>*]:pointer-events-auto">
-          <form
-            style={{
-              maxWidth: '100%',
-              width: '100%',
-              position: 'relative',
-              display: 'flex',
-              marginTop: 'auto',
-              overflow: 'visible',
-              background: 'none',
-              justifyContent: 'center',
-              marginLeft: 'auto',
-              marginRight: 'auto',
-              height: '52px',
-            }}
-            onSubmit={(e) => {
-              methods.handleSubmit(submit)(e);
-            }}
-          >
-            <Input
-              sx={{ width: '100%' }}
-              variant="outlined"
-              placeholder="Ask anything"
-              endDecorator={
-                <IconButton type="submit" disabled={isLoading}>
-                  <SendRoundedIcon />
-                </IconButton>
-              }
-              {...methods.register('query')}
-            />
-          </form>
+        <div className="flex flex-1 w-full mb-4">
+          <CompletionInput loading={loading} onSubmit={submit} />
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

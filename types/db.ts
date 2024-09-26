@@ -11,6 +11,7 @@ export type DBType =
   | 'db2'
   | 'access'
   | 'mongodb'
+  | 'starrocks'
   | 'hbase'
   | 'redis'
   | 'cassandra'
@@ -38,3 +39,25 @@ export type IChatDbSupportTypeSchema = {
 export type DbSupportTypeResponse = IChatDbSupportTypeSchema[];
 
 export type PostDbParams = Partial<DbListResponse[0] & { file_path: string }>;
+
+export type ChatFeedBackSchema = {
+  conv_uid: string;
+  conv_index: number;
+  question: string;
+  knowledge_space: string;
+  score: number;
+  ques_type: string;
+  messages: string;
+};
+
+export type PromptProps = {
+  id: number;
+  chat_scene: string;
+  sub_chat_scene: string;
+  prompt_type: string;
+  content: string;
+  user_name: string;
+  prompt_name: string;
+  gmt_created: string;
+  gmt_modified: string;
+};
